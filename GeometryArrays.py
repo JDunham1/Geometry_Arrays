@@ -1062,6 +1062,20 @@ class Quadrilateral(BasePolygon):
         return cls(vertices)
     
     @classmethod
+    def from_sidelengths(cls, widths=[1,1], height=1):
+        w1 = widths[0]
+        w2 = widths[1]
+        h = height
+        
+        vertices = [
+                (-w1/2,-h/2),
+                (w1/2,-h/2),
+                (w2/2,h/2),
+                (-w2/2,h/2)
+            ]
+        return cls(vertices)
+    
+    @classmethod
     def from_dimensions(cls, width=[1,1], height=[1,1]):
         """
         Creates a rotated quadrilateral with width = width[0] + width[1]
