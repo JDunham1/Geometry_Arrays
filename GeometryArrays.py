@@ -15,6 +15,7 @@ from matplotlib.patches import Polygon as MplPolygon
 from shapely.geometry import Polygon as ShapelyPolygon
 from shapely.geometry import MultiPolygon as ShapelyMultiPolygon
 from shapely.geometry.collection import GeometryCollection as ShapelyGeometryCollection
+from shapely.geometry import LineString as ShapelyLine
 from shapely.geometry.polygon import orient
 from shapely.geometry import box as ShapelyBox
 from shapely.affinity import rotate, translate
@@ -807,6 +808,35 @@ class BasePolygon:
         
     def plot(self, ax=None, **kwargs):
         plot_polygon(self.vertices, title=self.t, ax=ax, **kwargs)
+
+class Circle(BasePolygon):
+    def __init__(self, vertices):
+        #currently no additional checks being handled by Circle init
+        super().__init__(vertices,'Circle')
+    
+    @classmethod
+    def from_radius(cls, r, vertex_count = 100):
+        if r == 0:
+            raise ValueError("""Input not excepted. Produces a polygon of 1 distinct vertex.
+                             """)
+        theta = np.linspace(0, 2*np.pi, vertex_count, endpoint=False)
+        x = r * np.cos(theta)
+        y = r * np.sin(theta)
+        vertices = list(zip(x,y))
+        return cls(vertices)
+    
+    @classmethod
+    def quarter_circle(cls, radius, thickness, offset, resolution = 128):
+        #create quarter circle arc
+        
+        angles = np.linspace(offset, np.pi/2-offset, resolution)
+        coords = [(radius*np.cos(a),radius*np.sin(a)) for a in angles]
+        arc = ShapelyLine(coords)
+        
+        #buffer the arc to give it area
+        thicc_arc = arc.buffer(thickness)
+        vertices = list(thicc_arc.exterior.coords)
+        return cls(vertices)
         
     
 class Hexagon(BasePolygon):
