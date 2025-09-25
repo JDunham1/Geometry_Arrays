@@ -8,6 +8,7 @@ Created on Thu Jul 31 12:44:28 2025
 import math
 import numpy as np
 from numpy import sqrt
+from numpy import pi, sin, cos
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
 from matplotlib.patches import PathPatch
