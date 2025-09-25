@@ -33,7 +33,7 @@ def shapely_to_gdspy(shapely_geom, layer=0):
     if shapely_geom.is_empty:
         return gdspy_polys
 
-    if isinstance(shapely_geom, Polygon):
+    if isinstance(shapely_geom, ShapelyPolygon):
         # Exterior ring
         exterior = list(shapely_geom.exterior.coords)[:-1]
         exterior_poly = gdspy.Polygon(exterior, layer=layer)
@@ -51,7 +51,7 @@ def shapely_to_gdspy(shapely_geom, layer=0):
             if result is not None:
                 gdspy_polys.append(result)
 
-    elif isinstance(shapely_geom, MultiPolygon):
+    elif isinstance(shapely_geom, ShapelyMultiPolygon):
         for poly in shapely_geom.geoms:
             gdspy_polys.extend(shapely_to_gdspy(poly, layer=layer))
 
@@ -173,21 +173,21 @@ class VCSELGenerator:
         if self.lateral_growth is not None:
             self.generate_aperture()
         else:
-            raise ValueError("""VCSELGenerator has no defined Lateral Growth.
+            UserWarning("""VCSELGenerator has no defined Lateral Growth.
                     Unable to generate the aperture.""")
         #generate ion implantation regions
         if self.implant_width is not None and self.implant_length is not None:
             self.generate_implant_regions()
         else:
-            raise ValueError("""VCSELGenerator has not defined an implant parameters:
+            UserWarning("""VCSELGenerator has not defined an implant parameters:
                              implant_width or implant_length. Unable to generate
                              the implant regions""")
         #generate metal contacts
-        if self._aperture is not None and self._implants is not None:
+        if self._aperture is not None:
             self.generate_contact_partitions(self.contact_padding,
                                                  self.element_zone_padding)
         else:
-            raise ValueError("""VCSELGenerator failed to generate aperture 
+            UserWarning("""VCSELGenerator failed to generate aperture 
                              or implantation regions. It is unable to generate
                              the contact regions.""")
         
@@ -429,11 +429,6 @@ class VCSELGenerator:
         self.element_zone_padding = element_zone_padding
         self.implant_padding = implant_padding
         self.min_contact_area = min_contact_area
-        
-        #_implant check
-        if self._implants is None:
-            raise ValueError("""Ion Implantation regions must be generated before partitioning.
-                            Needed to seprate contact regions""")
         
         self._generate_contact_region(contact_padding,implant_padding)
         partitions = []
