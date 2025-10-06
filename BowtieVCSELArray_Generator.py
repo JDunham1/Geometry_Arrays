@@ -65,10 +65,10 @@ for i, ox_perturb in enumerate(growth_perturbation):
             circumradii_hexa = inradii_hexa / np.cos(np.pi / 6)
             
             left_poly = GA.Pentagon.from_inradius(inradii_penta[0])
-            middle_poly_i = GA.Hexagon.from_circumradii(circumradii_hexa + (cci, 0, 0, cci, 0, 0))
-            middle_poly_a = GA.Hexagon.from_inradii(inradii_hexa + (cca,0,0,0,0,0))
-            right_poly_x = GA.Pentagon.from_circumradii(circumradii_penta + (rc_x, 0, 0, 0, 0))
-            right_poly_y = GA.Pentagon.from_circumradii(circumradii_penta + (0,rc_y,0,0,rc_y))
+            middle_poly_i = GA.Hexagon.from_circumradii(circumradii_hexa + (cci-ox_perturb, 0, 0, cci-ox_perturb, 0, 0))
+            middle_poly_a = GA.Hexagon.from_inradii(inradii_hexa + (cca-ox_perturb,0,0,0,0,0))
+            right_poly_x = GA.Pentagon.from_circumradii(circumradii_penta + (rc_x-ox_perturb, 0, 0, 0, 0))
+            right_poly_y = GA.Pentagon.from_circumradii(circumradii_penta + (0,rc_y-ox_perturb,0,0,rc_y-ox_perturb))
             
             #convert geometry to array elements (rotate and translate)
             #inline x perturbation
