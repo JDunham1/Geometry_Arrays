@@ -168,7 +168,7 @@ class VCSELGenerator:
     ### Generation Methods
     ############################################################################################
 
-    def generate_all(self):
+    def generate_all(self,inv_fit=True):
         #generate Mesa
         self.generate_mesa()
         #generate aperture
@@ -179,7 +179,7 @@ class VCSELGenerator:
                     Unable to generate the aperture.""")
         #generate ion implantation regions
         if self.implant_width is not None and self.implant_length is not None:
-            self.generate_implant_regions()
+            self.generate_implant_regions(fit=inv_fit)
         else:
             UserWarning("""VCSELGenerator has not defined an implant parameters:
                              implant_width or implant_length. Unable to generate
@@ -710,6 +710,59 @@ class GeometryArray:
             shapely_polygons.append(ShapelyPolygon(verts))
         return shapely_polygons
     
+    # --- NEW: bounding box helpers ---
+    def get_bounding_box(self, method: str = "vertices"):
+        """
+        Return (minx, miny, maxx, maxy) covering all elements.
+
+        Parameters
+        ----------
+        method : {'vertices', 'union'}
+            'vertices' (default): fast; uses raw element vertices.
+            'union'            : robust; unions Shapely polygons (fixes minor self-intersections).
+
+        Raises
+        ------
+        ValueError
+            If the array is empty or contains no valid geometry.
+        """
+        if not self.elements:
+            raise ValueError("GeometryArray is empty; cannot compute a bounding box.")
+
+        if method == "vertices":
+            xs, ys = [], []
+            for el in self.elements:
+                v = np.asarray(el.get_transformed_vertices(), dtype=float)
+                if v.size == 0:
+                    continue
+                # Expect shape (N,2)
+                xs.append(v[:, 0])
+                ys.append(v[:, 1])
+            if not xs:  # all elements empty/degenerate
+                raise ValueError("No element has vertices; cannot compute a bounding box.")
+            xs = np.concatenate(xs); ys = np.concatenate(ys)
+            return (float(np.min(xs)), float(np.min(ys)),
+                    float(np.max(xs)), float(np.max(ys)))
+
+        if method == "union":
+            polys = []
+            for el in self.elements:
+                verts = el.get_transformed_vertices()
+                if verts is None or len(verts) < 3:
+                    continue
+                p = ShapelyPolygon(verts)
+                # Fix minor self-intersections if needed
+                if not p.is_valid:
+                    p = p.buffer(0)
+                if not p.is_empty:
+                    polys.append(p)
+            if not polys:
+                raise ValueError("No valid polygons to union; cannot compute a bounding box.")
+            u = unary_union(polys)
+            return u.bounds  # (minx, miny, maxx, maxy)
+
+        raise ValueError(f"Unknown method '{method}'. Use 'vertices' or 'union'.")
+        
 #%% ArrayElement Class
 #array elements hold information on the center, and rotation of a BasePolgyon 
 class ArrayElement:
