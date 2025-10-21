@@ -35,8 +35,9 @@ mesa_element_separation_i = 7 #eyeballed, will adjust
 mesa_element_separation_a = 8 
 sweep_padding = 150 #padding between sweep sets
 angled_element_angle = 22.5 * np.pi /180 # radians
-implant_length = 2
+implant_length = 3
 implant_width = 30
+implant_padding = 0.5
 
 n_swept = 5
 
@@ -132,6 +133,7 @@ for i, ox_perturb in enumerate(growth_perturbation):
                                                 contact_padding = array_contact_padding,
                                                 implant_width = implant_width,
                                                 implant_length = implant_length,
+                                                implant_padding = implant_padding,
                                                 min_contact_area = 5)
     visualization_generator.generate_all()
     visualization_generator.plot(show_implant=False,
