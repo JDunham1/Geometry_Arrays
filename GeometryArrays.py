@@ -25,6 +25,40 @@ from shapely.ops import unary_union
 import gdspy
 import time
 
+def _flatten_polygons(geom_or_iter):
+    """
+    Yield Shapely Polygons from:
+      - Polygon
+      - MultiPolygon
+      - GeometryCollection (recursively)
+      - iterable of any of the above (e.g., list/tuple)
+      - None/empty (ignored)
+    """
+    if geom_or_iter is None:
+        return []
+    # If it's a plain iterable (list/tuple), flatten each item
+    if isinstance(geom_or_iter, (list, tuple)):
+        out = []
+        for g in geom_or_iter:
+            out.extend(_flatten_polygons(g))
+        return out
+
+    g = geom_or_iter
+    if hasattr(g, "is_empty") and g.is_empty:
+        return []
+
+    if isinstance(g, ShapelyPolygon):
+        return [g]
+    if isinstance(g, ShapelyMultiPolygon):
+        return list(g.geoms)
+    if isinstance(g, ShapelyGeometryCollection):
+        out = []
+        for sub in g.geoms:
+            out.extend(_flatten_polygons(sub))
+        return out
+
+    raise TypeError(f"Unsupported geometry type for flattening: {type(g)}")
+
 def shapely_to_gdspy(shapely_geom, layer=0):
     """
     Convert a Shapely Polygon or MultiPolygon into a flat list of gdspy.Polygon(s).
@@ -144,25 +178,18 @@ class VCSELGenerator:
     @property
     def bounding_box(self):
         """
-        Return the bounding box (minx, miny, maxx, maxy) of the device,
-        including the mesa and implants if they exist.
+        Return (minx, miny, maxx, maxy) covering mesa and implants.
+        Works whether implants/mesa are Polygon, MultiPolygon, lists, or collections.
         """
         polys = []
-
-        # Mesa (always required for bounding box)
-        if hasattr(self, "_mesa") and self._mesa is not None:
-            polys.append(self._mesa)
-
-        # Implants (may extend beyond mesa)
-        if hasattr(self, "_implants") and self._implants:
-            polys.extend(self._implants)
+        polys.extend(_flatten_polygons(getattr(self, "_mesa", None)))
+        polys.extend(_flatten_polygons(getattr(self, "_implants", None)))
 
         if not polys:
             raise ValueError("Bounding box requested, but no mesa or implants generated.")
 
-        # Union them to get overall bounds
-        union = unary_union(polys)
-        return union.bounds  # (minx, miny, maxx, maxy)
+        u = unary_union(polys)
+        return u.bounds  # (minx, miny, maxx, maxy)
     
     ###########################################################################################
     ### Generation Methods
