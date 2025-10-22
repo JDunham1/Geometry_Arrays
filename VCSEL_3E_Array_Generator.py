@@ -25,6 +25,7 @@ def create_paramsweep_array_mesas(n_swept,
                             growth_sweep,
                             rc_params,
                             cc_params,
+                            lateral_growth,
                             scale_factors,
                             start = (0,0)
                             ):
@@ -151,9 +152,10 @@ print(f"""
     
       """)
 
-vcsel_arrays = create_paramsweep_array_mesas(n_swept, growth_perturbation, 
+vcsel_arrays = create_paramsweep_array_mesas(n_swept, growth_perturbation,
                                              [rc_center, rc_base_span],
                                              [cc_center, cc_base_span],
+                                             lateral_growth,
                                              scale_factors)
 
 # Generate all difference Array combinations (separate ones at difference lateral growths for visual inspection)
@@ -165,6 +167,7 @@ for i, ox_perturb in enumerate(growth_perturbation):
                                                 contact_padding = array_contact_padding,
                                                 implant_width = implant_width,
                                                 implant_length = implant_length,
+                                                implant_padding = implant_padding,
                                                 min_contact_area = 5)
     visualization_generator.generate_all(inv_fit=False)
     visualization_generator.plot(show_implant=False,
@@ -200,6 +203,7 @@ mid_range_start = (0,prev_ymax+2*sweep_padding)
 vcsel_arrays = create_paramsweep_array_mesas(n_swept, growth_perturbation, 
                                              [rc_center, rc_base_span],
                                              [cc_center, cc_base_span],
+                                             lateral_growth,
                                              scale_factors,
                                              start = mid_range_start)
 
@@ -212,6 +216,7 @@ for i, ox_perturb in enumerate(growth_perturbation):
                                                 contact_padding = array_contact_padding,
                                                 implant_width = implant_width,
                                                 implant_length = implant_length,
+                                                implant_padding = implant_padding,
                                                 min_contact_area = 5)
     visualization_generator.generate_all(inv_fit=False)
     visualization_generator.plot(show_implant=False,
@@ -247,6 +252,7 @@ low_range_start = (0,prev_ymax+2*sweep_padding)
 vcsel_arrays = create_paramsweep_array_mesas(n_swept, growth_perturbation, 
                                              [rc_center, rc_base_span],
                                              [cc_center, cc_base_span],
+                                             lateral_growth,
                                              scale_factors,
                                              start = low_range_start)
 
