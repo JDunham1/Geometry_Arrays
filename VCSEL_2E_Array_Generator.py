@@ -76,7 +76,7 @@ def create_paramsweep_array_mesas(n_swept,
                 
                 #combine into geometryarray and add to generator list
                 vcsel_array_iy = GA.GeometryArray((left_mesa_iy,right_mesa_iy))
-                vcsel_arrays.append(vcsel_array_iy)
+                vcsel_arrays.append(vcsel_array_iy)         
     
     return vcsel_arrays
                 
