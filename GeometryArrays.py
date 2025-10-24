@@ -24,6 +24,7 @@ from shapely import set_precision
 from shapely.ops import unary_union
 import gdspy
 import time
+import ezdxf
 
 def _flatten_polygons(geom_or_iter):
     """
@@ -623,6 +624,132 @@ class VCSELGenerator:
             polygons.append(shapely_to_gdspy(self._aperture,layer=99))
             
         return polygons
+    
+    def write_dxf(
+            self,
+            outfile: str,
+            include_aperture: bool = False,
+            layer_map: dict | None = None,
+            insunits: int | None = None,
+            lwpolyline: bool = True,
+            ) -> str:
+        """
+        Write VCSEL layers to a DXF file.
+
+        Layers written
+        --------------
+        - Mesa (self._mesa)
+        - Contacts (self._contacts)
+        - Implants (inverse) (self._implants_inv)
+        - Aperture (self._aperture) [optional, include_aperture=True]
+
+        Parameters
+        ----------
+        outfile : str
+            Path to the DXF to create.
+        include_aperture : bool
+            If True, also writes the aperture geometry on its own layer.
+        layer_map : dict | None
+            Mapping of logical names to DXF layer names, e.g.:
+                {"mesa":"MESA","contacts":"CONTACTS","implants":"IMPLANTS","aperture":"APERTURE"}.
+                Defaults to those names if not provided.
+        insunits : int | None
+            DXF $INSUNITS header (0=unitless, 1=inches, 4=mm, 6=meters, etc.).
+        lwpolyline : bool
+            If True, write LWPOLYLINE; otherwise, POLYLINE (2D).
+
+        Returns
+        -------
+        str
+            The written file path.
+        """
+        if ezdxf is None:
+            raise ImportError("ezdxf is required for write_dxf(). Install with `pip install ezdxf`.")
+
+        # Default layer names consistent with to_gdspy ordering
+        # (contacts, mesa, implants_inv, optional aperture)
+        default_layers = {
+            "contacts": "CONTACTS",
+            "mesa": "MESA",
+            "implants": "IMPLANTS",
+            "aperture": "APERTURE",
+        }
+        if layer_map:
+            default_layers.update(layer_map)
+        L = default_layers  # alias
+
+        # Create DXF document & modelspace
+        doc = ezdxf.new("R2010")
+        msp = doc.modelspace()
+        if insunits is not None:
+            doc.header["$INSUNITS"] = int(insunits)
+
+        # Ensure layers exist
+        for name in {L["contacts"], L["mesa"], L["implants"], L["aperture"]}:
+            if name not in doc.layers:
+                doc.layers.new(name=name)
+
+        def _ring_to_seq(ring):
+            # DXF closed polylines don't need the last point repeated
+            # Keep as float tuples
+            coords = list(ring.coords)
+            if len(coords) >= 2 and (coords[0][0] == coords[-1][0] and coords[0][1] == coords[-1][1]):
+                coords = coords[:-1]
+            return [(float(x), float(y)) for x, y in coords]
+
+        def _emit_polygon(poly, layer_name):
+            # exterior
+            ext = _ring_to_seq(poly.exterior)
+            if lwpolyline:
+                msp.add_lwpolyline(ext, format="xy", dxfattribs={"layer": layer_name, "closed": True})
+            else:
+                pl = msp.add_polyline2d(ext, dxfattribs={"layer": layer_name})
+                pl.close(True)
+            # holes as their own closed polylines (many importers treat these as holes or separate loops)
+            for hole in poly.interiors:
+                inn = _ring_to_seq(hole)
+                if lwpolyline:
+                    msp.add_lwpolyline(inn, format="xy", dxfattribs={"layer": layer_name, "closed": True})
+                else:
+                    pl = msp.add_polyline2d(inn, dxfattribs={"layer": layer_name})
+                    pl.close(True)
+
+        def _emit_geometry(geom, layer_name):
+            if geom is None:
+                return
+            # Supports Polygon and MultiPolygon (your generator stores these) 
+            # and collections via your existing pipeline.
+            from shapely.geometry import Polygon as _Poly
+            from shapely.geometry import MultiPolygon as _MP
+            from shapely.geometry.collection import GeometryCollection as _GC
+
+            if isinstance(geom, _Poly):
+                _emit_polygon(geom, layer_name)
+            elif isinstance(geom, _MP):
+                for g in geom.geoms:
+                    _emit_polygon(g, layer_name)
+            elif isinstance(geom, _GC):
+                for g in geom.geoms:
+                    _emit_geometry(g, layer_name)
+            else:
+                # try to iterate (e.g., list of polygons)
+                try:
+                    for g in geom:
+                        _emit_geometry(g, layer_name)
+                except TypeError:
+                    pass  # silently skip unsupported types
+
+        # Write layers in same spirit as to_gdspy()
+        if hasattr(self, "_mesa") and self._mesa is not None:
+            _emit_geometry(self._mesa, L["mesa"])
+        if hasattr(self, "_contacts") and self._contacts is not None:
+            _emit_geometry(self._contacts, L["contacts"])
+        if hasattr(self, "_implants_inv") and self._implants_inv is not None:
+            _emit_geometry(self._implants_inv, L["implants"])
+        if include_aperture and hasattr(self, "_aperture") and self._aperture is not None:
+            _emit_geometry(self._aperture, L["aperture"])
+
+        doc.saveas(outfile)
     
     @staticmethod 
     def _polygon_with_holes_to_path(polygon):
