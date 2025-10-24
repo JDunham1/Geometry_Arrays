@@ -614,10 +614,10 @@ class VCSELGenerator:
         if hasattr(self,"_mesa"):
             polygons.append(shapely_to_gdspy(self._mesa,layer=mesa_layer))
         
-        if hasattr(self,"_contacts"):
+        if hasattr(self,"_contacts") and self._contacts:
             polygons.append(shapely_to_gdspy(self._contacts,layer=contact_layer))
         
-        if hasattr(self,"_implants_inv"):
+        if hasattr(self,"_implants_inv") and self._implants_inv:
             polygons.append(shapely_to_gdspy(self._implants_inv,layer=ion_layer))
 
         if include_aperture and hasattr(self,"_aperture"):
@@ -1295,16 +1295,17 @@ class Quadrilateral(BasePolygon):
         return cls(vertices)
     
     @classmethod
-    def from_sidelengths(cls, widths=[1,1], height=1):
+    def from_sidelengths(cls, widths=[1,1], heights=[1,1]):
         w1 = widths[0]
         w2 = widths[1]
-        h = height
+        h1 = heights[0]
+        h2 = heights[1]
         
         vertices = [
-                (-w1/2,-h/2),
-                (w1/2,-h/2),
-                (w2/2,h/2),
-                (-w2/2,h/2)
+                (-w1,-h1),
+                (w1,-h1),
+                (w2,h2),
+                (-w2,h2)
             ]
         return cls(vertices)
     
@@ -1390,7 +1391,8 @@ def polygon_from_vertices(vertices):
         angle_rad = math.acos(cos_theta)
         angle_deg = math.degrees(angle_rad)
         angles_deg.append(angle_deg)
-
+    angles_deg = np.array(angles_deg)
+    
     return side_lengths, angles_deg
 
 #%% Polygon Plotting Function

@@ -29,9 +29,9 @@ dalir_implant_length = 2
 center_spacing = 12 - (dalir_aperture_size)*np.sqrt(2)
 # diagonals = np.ones((4,))*(dalir_lateral_growth+dalir_aperture_size*np.sqrt(2)*1.2)
 # dalir_geom = GA.Quadrilateral.from_diagonals(diagonals)
-widths = np.ones((2,))*(dalir_aperture_size+2*dalir_lateral_growth)
-dalir_geom = GA.Quadrilateral.from_sidelengths(widths=widths,
-                                               height=dalir_aperture_size+2*dalir_lateral_growth)
+dalir_inradii = np.ones((4,))*(dalir_aperture_size/2+dalir_lateral_growth)
+dalir_geom = GA.Quadrilateral.from_sidelengths(widths=dalir_inradii[:2],
+                                               heights=dalir_inradii[2:])
 # dalir_geom.plot()
 
 dalir_cavity1 = GA.ArrayElement(dalir_geom,center=(-center_spacing/2,0),rotation_deg=45)
@@ -68,17 +68,17 @@ circumradii_right = circumradii_penta + (0,0,0,0,0)
 aperture_circumradius = aperture_radius / np.cos(np.pi/5)
 psl_center_spacing = 12 - 2*aperture_circumradius
 
-left_poly = GA.Pentagon.from_circumradii(circumradii_left)
-right_poly = GA.Pentagon.from_circumradii(circumradii_right)
-# left_poly.plot()
-# right_poly.plot()
+left_poly = GA.Pentagon.from_inradii(inradii_penta)
+right_poly = GA.Pentagon.from_inradii(inradii_penta)
+left_poly.plot()
+right_poly.plot()
 
 psl_cavity1 = GA.ArrayElement(left_poly,
                             center=(-psl_center_spacing/2,0),
-                            rotation_deg=90)
+                            rotation_deg=0)
 psl_cavity2 = GA.ArrayElement(right_poly,
                              center=(psl_center_spacing/2,0),
-                             rotation_deg=-90)
+                             rotation_deg=180)
 # psl_cavity1.plot()
 # psl_cavity2.plot()
 
