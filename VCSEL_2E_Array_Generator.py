@@ -83,7 +83,7 @@ def create_paramsweep_array_mesas(n_swept,
 
 gdspy.current_library = gdspy.GdsLibrary()
 lib = gdspy.GdsLibrary()
-array_element_unitcell = lib.new_cell("Bowtie Array Elements")
+array_element_unitcell = lib.new_cell("2 Element 2in Arrays")
 plt.close('all')
 #%% Shared Parameters between arrays
 lateral_growth = 5 #um
@@ -92,13 +92,13 @@ edge_gauge = 50 #um, eyeballed, feel free to change
 array_contact_padding = 1
 edge_align_padding = 10
 aperture_radius = 3*np.sqrt(2)/2
-mesa_element_separation_i = 7 #eyeballed, will adjust
+mesa_element_separation_i = 7
 mesa_element_separation_a = 8 
 sweep_padding = 75 #padding between sweep sets
 angled_element_angle = 22.5 * np.pi /180 # radians
-implant_length = 3
+implant_length = 2
 implant_width = 50
-implant_padding = 0.5
+implant_padding = 1
 
 growth_perturbation = np.arange(-1,1.5,step=0.5)
 #scale_factors = lateral_growth/(lateral_growth+growth_perturbation)
@@ -106,7 +106,7 @@ growth_perturbation = np.arange(-1,1.5,step=0.5)
 scale_factors = np.array([0.95,1.0,1.0,0.95,0.95])
 
 #%% Wide Range sweep (low resolution)
-n_swept = 10
+n_swept = 9
 rc_center,  rc_base_span  = 0.0, 3.0
 cc_center, cc_base_span = 0.0, 2.6
 
@@ -143,11 +143,11 @@ for i, ox_perturb in enumerate(growth_perturbation):
                                  show_implant_inv = True,
                                  show_contact_region = False)
 
-    for gds in visualization_generator.to_gdspy():
+    for gds in visualization_generator.to_gdspy(include_aperture=True):
         array_element_unitcell.add(gds)
 
 #%% Medium Range Sweep (Averaged resolution)
-n_swept = 10
+n_swept = 9
 rc_center,  rc_base_span  = 0.0, 1.75
 cc_center, cc_base_span = 0.0, 1.6
 
@@ -186,11 +186,11 @@ for i, ox_perturb in enumerate(growth_perturbation):
                                  show_implant_inv = True,
                                  show_contact_region = False)
 
-    for gds in visualization_generator.to_gdspy():
+    for gds in visualization_generator.to_gdspy(include_aperture=True):
         array_element_unitcell.add(gds)
 
 #%% Narrow Range Sweep (High Resolution)
-n_swept = 10
+n_swept = 9
 rc_center,  rc_base_span  = 0.0, 0.5
 cc_center, cc_base_span = 0.0, 0.6
 
@@ -230,8 +230,8 @@ for i, ox_perturb in enumerate(growth_perturbation):
                                  show_implant_inv = True,
                                  show_contact_region = False)
 
-    for gds in visualization_generator.to_gdspy():
+    for gds in visualization_generator.to_gdspy(include_aperture=True):
         array_element_unitcell.add(gds)
 
 #%% Outpute File
-lib.write_gds('./gds_files/bowtie_2E_array_elements.gds')
+lib.write_gds('./gds_files/bowtie_2inImplant_2E_array_elements.gds')
