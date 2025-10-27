@@ -59,15 +59,10 @@ aperture_radius = 3*np.sqrt(2)/2
 psl_implant_width = 30
 psl_implant_length = 2
 
-
-inradii_penta = np.array((1,1,1,1,1))*(psl_lateral_growth + aperture_radius)
-circumradii_penta = inradii_penta / np.cos(np.pi / 5)
-#modifications can be made here to affect the bridge width
-circumradii_left = circumradii_penta + (0,0,0,0,0) #top, left, bottom left, bottom right, right
-circumradii_right = circumradii_penta + (0,0,0,0,0)
 aperture_circumradius = aperture_radius / np.cos(np.pi/5)
 psl_center_spacing = 12 - 2*aperture_circumradius
 
+inradii_penta = np.array((1,1,1,1,1))*(psl_lateral_growth + aperture_radius)
 left_poly = GA.Pentagon.from_inradii(inradii_penta)
 right_poly = GA.Pentagon.from_inradii(inradii_penta)
 left_poly.plot()
