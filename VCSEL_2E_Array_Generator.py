@@ -7,6 +7,28 @@ contact_layer = 1
 mesa_layer = 2
 ion_layer = 3
 
+#%% Shared Parameters between arrays
+lateral_growth = 5 #um
+edge_pitch = 50 #um
+edge_gauge = 50 #um, eyeballed, feel free to change
+array_contact_padding = 1
+edge_align_padding = 10
+aperture_radius = 3*np.sqrt(2)/2
+mesa_element_separation_i = 7
+mesa_element_separation_a = 8 
+sweep_padding = 75 #padding between sweep sets
+angled_element_angle = 22.5 * np.pi /180 # radians
+implant_length = 3
+implant_width = 50
+implant_padding = 1
+
+growth_perturbation = np.arange(-1,1.5,step=0.5)
+#scale_factors = lateral_growth/(lateral_growth+growth_perturbation)
+#visually determined due to non-uniform scaling of geometric extent. 
+scale_factors = np.array([0.95,1.0,1.0,0.95,0.95])
+
+#%%
+
 def scaled_linspace(center, base_span, s, n, hard_min=None, hard_max=None):
     """
     base_span: half-span at ox=0 (i.e., values go [center - base_span, center + base_span])
@@ -83,27 +105,9 @@ def create_paramsweep_array_mesas(n_swept,
 
 gdspy.current_library = gdspy.GdsLibrary()
 lib = gdspy.GdsLibrary()
-array_element_unitcell = lib.new_cell("2 Element 2in Arrays")
+array_element_unitcell = lib.new_cell(f"{int(implant_length)} Element 2in Arrays")
 plt.close('all')
-#%% Shared Parameters between arrays
-lateral_growth = 5 #um
-edge_pitch = 50 #um
-edge_gauge = 50 #um, eyeballed, feel free to change
-array_contact_padding = 1
-edge_align_padding = 10
-aperture_radius = 3*np.sqrt(2)/2
-mesa_element_separation_i = 7
-mesa_element_separation_a = 8 
-sweep_padding = 75 #padding between sweep sets
-angled_element_angle = 22.5 * np.pi /180 # radians
-implant_length = 2
-implant_width = 50
-implant_padding = 1
 
-growth_perturbation = np.arange(-1,1.5,step=0.5)
-#scale_factors = lateral_growth/(lateral_growth+growth_perturbation)
-#visually determined due to non-uniform scaling of geometric extent. 
-scale_factors = np.array([0.95,1.0,1.0,0.95,0.95])
 
 #%% Wide Range sweep (low resolution)
 n_swept = 9
@@ -234,4 +238,4 @@ for i, ox_perturb in enumerate(growth_perturbation):
         array_element_unitcell.add(gds)
 
 #%% Outpute File
-lib.write_gds('./gds_files/bowtie_2inImplant_2E_array_elements.gds')
+lib.write_gds(f'./gds_files/bowtie_{implant_length}inImplant_2E_array_elements.gds')

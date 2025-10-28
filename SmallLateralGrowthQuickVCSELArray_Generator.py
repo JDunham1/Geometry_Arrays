@@ -33,7 +33,7 @@ second_half_mesas = first_half_mesas[-1] + step_size_2*np.arange(1,n//2 - 1)
 step_size_final = 5
 final_mesa = second_half_mesas[-1] + step_size_final*np.arange(1,2)
 
-sml_mesas = np.concat((first_half_mesas,second_half_mesas,final_mesa))
+sml_mesas = np.concatenate((first_half_mesas,second_half_mesas,final_mesa))
 
 #%% small lateral growth vcsels Generation
 xs = np.linspace(-(lenx-1)/2*sml_pitch,(lenx-1)/2*sml_pitch,lenx)
@@ -49,25 +49,25 @@ for coord, mesa in zip(np.column_stack([X.ravel(),Y.ravel()]),sml_mesas):
     #create basic geometries
     sml_quick_vcsel = GA.Quadrilateral.from_sidelengths(
             widths=[
-                    mesa,
-                    mesa
+                    mesa/2,
+                    mesa/2
                 ],
-            height = mesa
+            heights = [mesa/2, mesa/2]
         )
     bridge_geom = GA.Quadrilateral.from_sidelengths(
             widths=[
-                    bridge_width,
-                    bridge_width
+                    bridge_width/2,
+                    bridge_width/2
                 ],
-            height = bridge_length
+            heights = [bridge_length/2, bridge_length/2]
         )
     
     tab_geom = GA.Quadrilateral.from_sidelengths(
             widths=[
-                    sml_tab_width,
-                    sml_tab_width
+                    sml_tab_width/2,
+                    sml_tab_width/2
                 ],
-            height = sml_tab_length
+            heights = [sml_tab_length/2, sml_tab_length/2]
         )
     
     # contact_pad_geom = GA.Quadrilateral.from_sidelengths(
