@@ -129,7 +129,7 @@ plt.close('all')
 
 gdspy.current_library = gdspy.GdsLibrary()
 lib = gdspy.GdsLibrary()
-array_element_unitcell = lib.new_cell(f"{implant_length} Element 2in Arrays")
+array_element_unitcell = lib.new_cell(f"3 Element {implant_length}in Arrays")
 
 
 #%% Wide Range sweep (low resolution)

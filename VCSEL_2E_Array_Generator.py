@@ -105,7 +105,7 @@ def create_paramsweep_array_mesas(n_swept,
 
 gdspy.current_library = gdspy.GdsLibrary()
 lib = gdspy.GdsLibrary()
-array_element_unitcell = lib.new_cell(f"{int(implant_length)} Element 2in Arrays")
+array_element_unitcell = lib.new_cell(f"2 Element {int(implant_length)}in Arrays")
 plt.close('all')
 
 
