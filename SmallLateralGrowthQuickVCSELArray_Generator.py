@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import gdspy 
 
 contact_layer = 1
-mesa_layer = 2
+mesa_layer = 3
 
 #%% Smole Quick VCSEL Parameters
 sml_lateral_growth = 5
@@ -144,7 +144,8 @@ gdspy.current_library = gdspy.GdsLibrary()
 lib = gdspy.GdsLibrary()
 
 sml_lateral_growth_unitcell = lib.new_cell("Small Lateral Growth Elements")
-for gds in sml_vcsel_generator.to_gdspy():
+for gds in sml_vcsel_generator.to_gdspy(contact_layer=contact_layer,
+                                        mesa_layer=mesa_layer):
     sml_lateral_growth_unitcell.add(gds)
 
 lib.write_gds('./gds_files/small_quick_vcsel_elements.gds')

@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import gdspy 
 
 contact_layer = 1
-mesa_layer = 2
-ion_layer = 3
+ion_layer = 2
+mesa_layer = 3
 
 #%% Shared Parameters between arrays
 lateral_growth = 5 #um
@@ -147,7 +147,10 @@ for i, ox_perturb in enumerate(growth_perturbation):
                                  show_implant_inv = True,
                                  show_contact_region = False)
 
-    for gds in visualization_generator.to_gdspy(include_aperture=True):
+    for gds in visualization_generator.to_gdspy(include_aperture=True,
+                                                contact_layer=contact_layer,
+                                                mesa_layer=mesa_layer,
+                                                ion_layer=ion_layer):
         array_element_unitcell.add(gds)
 
 #%% Medium Range Sweep (Averaged resolution)
@@ -190,7 +193,10 @@ for i, ox_perturb in enumerate(growth_perturbation):
                                  show_implant_inv = True,
                                  show_contact_region = False)
 
-    for gds in visualization_generator.to_gdspy(include_aperture=True):
+    for gds in visualization_generator.to_gdspy(include_aperture=True,
+                                                contact_layer=contact_layer,
+                                                mesa_layer=mesa_layer,
+                                                ion_layer=ion_layer):
         array_element_unitcell.add(gds)
 
 #%% Narrow Range Sweep (High Resolution)
@@ -234,7 +240,10 @@ for i, ox_perturb in enumerate(growth_perturbation):
                                  show_implant_inv = True,
                                  show_contact_region = False)
 
-    for gds in visualization_generator.to_gdspy(include_aperture=True):
+    for gds in visualization_generator.to_gdspy(include_aperture=True,
+                                                contact_layer=contact_layer,
+                                                mesa_layer=mesa_layer,
+                                                ion_layer=ion_layer):
         array_element_unitcell.add(gds)
 
 #%% Outpute File

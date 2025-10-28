@@ -606,9 +606,9 @@ class VCSELGenerator:
         if contact_layer is None:
             contact_layer = 1
         if mesa_layer is None:
-            mesa_layer = 2
+            mesa_layer = 3
         if ion_layer is None:
-            ion_layer = 3
+            ion_layer = 2
         polygons = []
         #layers ordered vertically from substrate (layer 0)
         if hasattr(self,"_mesa"):
