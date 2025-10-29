@@ -18,9 +18,9 @@ mesa_element_separation_i = 7 #eyeballed, will adjust
 mesa_element_separation_a = 8 
 sweep_padding = 75 #padding between sweep sets
 angled_element_angle = 22.5 * np.pi /180 # radians
-implant_length = 3
+implant_length = 2
 implant_width = 50
-implant_padding = 0
+implant_padding = 1
 
 growth_perturbation = np.arange(-1,1.5,step=0.5)
 #scale_factors = lateral_growth/(lateral_growth+growth_perturbation)

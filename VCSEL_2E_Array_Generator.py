@@ -18,9 +18,9 @@ mesa_element_separation_i = 7
 mesa_element_separation_a = 8 
 sweep_padding = 75 #padding between sweep sets
 angled_element_angle = 22.5 * np.pi /180 # radians
-implant_length = 2
+implant_length = 3
 implant_width = 50
-implant_padding = 1
+implant_padding = 0
 
 growth_perturbation = np.arange(-1,1.5,step=0.5)
 #scale_factors = lateral_growth/(lateral_growth+growth_perturbation)
@@ -49,14 +49,14 @@ def scaled_linspace(center, base_span, s, n, hard_min=None, hard_max=None, if_po
 def create_paramsweep_array_mesas(n_swept,
                             growth_sweep,
                             rc_params,
-                            cc_params,
+                            pinch_params,
                             lateral_growth,
                             scale_factors,
                             start = (0,0)
                             ):
     # Paramter Unpacking
     rc_center, rc_base_span = rc_params
-    # cc_center,cc_base_span = cc_params
+    pinch_center,pinch_base_span = pinch_params
     
     
     vcsel_arrays = []
@@ -64,15 +64,14 @@ def create_paramsweep_array_mesas(n_swept,
     for i, (ox_perturb,s) in enumerate(zip(growth_perturbation,scale_factors)):
         print(f'Generating Sweep with Oxide Offset {ox_perturb}, scale_factor {s}')
         # recompute inner arrays for THIS ox_perturb (lengths unchanged = n_swept)
-        rc_Y_perturbation = scaled_linspace(rc_center,  rc_base_span,  s, n_swept)
-        cci_perturbation  = scaled_linspace(cc_center, cc_base_span, s, n_swept)
-        cca_perturbation  = scaled_linspace(cc_center, cc_base_span, s, n_swept)
-        element_start = np.array((i*(len(cci_perturbation)*edge_pitch+sweep_padding),0)) + start
+        rc_Y_perturbation = scaled_linspace(rc_center,  rc_base_span,  s, n_swept,if_positive_scan_only=True)
+        pinch_perturbation  = scaled_linspace(pinch_center, pinch_base_span, s, n_swept) # modify the "pinch" of the coupling side-length
+        element_start = np.array((i*(len(pinch_perturbation)*edge_pitch+sweep_padding),0)) + start
         
-        for j, (cci, cca) in enumerate(zip(cci_perturbation,cca_perturbation)):
+        for j, pinch_perturbation in enumerate(pinch_perturbation):
             element_position = element_start + (j*edge_pitch,0)
             for k, rc_y in enumerate(rc_Y_perturbation):
-                # print((i,j,k))
+                print((i,j,k))
                 #generate the starting coordinates for each of the sweep sets
                 element_position_iy = element_position + (0,k*edge_gauge)
                 # element_position_ay = element_position_iy + (0,len(rc_Y_perturbation)*edge_gauge+sweep_padding)
@@ -83,10 +82,12 @@ def create_paramsweep_array_mesas(n_swept,
                 # inradii_hexa = np.array((1,1,1,1,1,1))*(lateral_growth + aperture_radius + ox_perturb)
                 # circumradii_hexa = inradii_hexa / np.cos(np.pi / 6)
                 
-                left_poly = GA.Pentagon.from_inradius(inradii_penta[0])
+                
+                left_poly = GA.Pentagon.from_circumradii(circumradii_penta + [0,0,pinch_perturbation,pinch_perturbation,0])
+                # left_poly = GA.Pentagon.from_circumradii([1,2,3,4,5])
                 # middle_poly_i = GA.Hexagon.from_circumradii(circumradii_hexa + (cci, 0, 0, cci, 0, 0))
                 # middle_poly_a = GA.Hexagon.from_inradii(inradii_hexa + (cca,0,0,0,0,0))
-                right_poly_y = GA.Pentagon.from_circumradii(circumradii_penta + (0,rc_y,0,0,rc_y))
+                right_poly_y = GA.Pentagon.from_circumradii(circumradii_penta + [0,rc_y,pinch_perturbation,pinch_perturbation,rc_y])
                 
 
                 #inline y perturbation
@@ -113,9 +114,9 @@ plt.close('all')
 
 
 #%% Wide Range sweep (low resolution)
-n_swept = 5
+n_swept = 9
 rc_center,  rc_base_span  = 0.0, 3.0
-cc_center, cc_base_span = 0.0, 2.6
+pinch_center, pinch_base_span = 0.0, 3
 
 # report swept parameter resolutions, total element count, and estimated simulation time
 right_resolution = rc_base_span*2 / n_swept
@@ -131,7 +132,7 @@ print(f"""
 
 vcsel_arrays = create_paramsweep_array_mesas(n_swept, growth_perturbation,
                                              [rc_center, rc_base_span],
-                                             [cc_center, cc_base_span],
+                                             [pinch_center, pinch_base_span],
                                              lateral_growth,
                                              scale_factors)
 
@@ -157,9 +158,9 @@ for i, ox_perturb in enumerate(growth_perturbation):
         array_element_unitcell.add(gds)
 
 #%% Medium Range Sweep (Averaged resolution)
-n_swept = 5
+n_swept = 9
 rc_center,  rc_base_span  = 0.0, 1.75
-cc_center, cc_base_span = 0.0, 1.6
+pinch_center, pinch_base_span = 0.0, 2
 
 # report swept parameter resolutions, total element count, and estimated simulation time
 right_resolution = rc_base_span*2 / n_swept
@@ -176,7 +177,7 @@ mid_range_start = (0,prev_ymax+2*sweep_padding)
 
 vcsel_arrays = create_paramsweep_array_mesas(n_swept, growth_perturbation, 
                                              [rc_center, rc_base_span],
-                                             [cc_center, cc_base_span],
+                                             [pinch_center, pinch_base_span],
                                              lateral_growth,
                                              scale_factors,
                                              start = mid_range_start)
@@ -203,9 +204,9 @@ for i, ox_perturb in enumerate(growth_perturbation):
         array_element_unitcell.add(gds)
 
 #%% Narrow Range Sweep (High Resolution)
-n_swept = 5
-rc_center,  rc_base_span  = 0.0, 2
-cc_center, cc_base_span = 0.0, 10
+n_swept = 9
+rc_center,  rc_base_span  = 0.0, 0.5
+pinch_center, pinch_base_span = 0.0, 1
 
 # report swept parameter resolutions, total element count, and estimated simulation time
 right_resolution = rc_base_span*2 / n_swept
@@ -222,7 +223,7 @@ low_range_start = (0,prev_ymax+2*sweep_padding)
 
 vcsel_arrays = create_paramsweep_array_mesas(n_swept, growth_perturbation, 
                                              [rc_center, rc_base_span],
-                                             [cc_center, cc_base_span],
+                                             [pinch_center, pinch_base_span],
                                              lateral_growth,
                                              scale_factors,
                                              start = low_range_start)
