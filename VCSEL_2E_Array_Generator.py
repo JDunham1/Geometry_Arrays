@@ -18,7 +18,7 @@ mesa_element_separation_i = 7
 mesa_element_separation_a = 8 
 sweep_padding = 75 #padding between sweep sets
 angled_element_angle = 22.5 * np.pi /180 # radians
-implant_length = 3
+implant_length = 2
 implant_width = 50
 implant_padding = 1
 
@@ -29,7 +29,7 @@ scale_factors = np.array([0.95,1.0,1.0,0.95,0.95])
 
 #%%
 
-def scaled_linspace(center, base_span, s, n, hard_min=None, hard_max=None):
+def scaled_linspace(center, base_span, s, n, hard_min=None, hard_max=None, if_positive_scan_only=False):
     """
     base_span: half-span at ox=0 (i.e., values go [center - base_span, center + base_span])
     ox_max: maximum |ox| in your growth_perturbation schedule
@@ -37,7 +37,10 @@ def scaled_linspace(center, base_span, s, n, hard_min=None, hard_max=None):
     hard_min/hard_max: optional global caps
     """
     span = base_span * s
-    arr = np.linspace(center - span, center + span, n)
+    if if_positive_scan_only:
+        arr = np.linspace(center, center + span, n)
+    else:
+        arr = np.linspace(center - span, center + span, n)
     if hard_min is not None or hard_max is not None:
         arr = np.clip(arr, hard_min if hard_min is not None else -np.inf,
                            hard_max if hard_max is not None else  np.inf)
@@ -53,7 +56,7 @@ def create_paramsweep_array_mesas(n_swept,
                             ):
     # Paramter Unpacking
     rc_center, rc_base_span = rc_params
-    cc_center,cc_base_span = cc_params
+    # cc_center,cc_base_span = cc_params
     
     
     vcsel_arrays = []
@@ -110,7 +113,7 @@ plt.close('all')
 
 
 #%% Wide Range sweep (low resolution)
-n_swept = 9
+n_swept = 5
 rc_center,  rc_base_span  = 0.0, 3.0
 cc_center, cc_base_span = 0.0, 2.6
 
@@ -154,7 +157,7 @@ for i, ox_perturb in enumerate(growth_perturbation):
         array_element_unitcell.add(gds)
 
 #%% Medium Range Sweep (Averaged resolution)
-n_swept = 9
+n_swept = 5
 rc_center,  rc_base_span  = 0.0, 1.75
 cc_center, cc_base_span = 0.0, 1.6
 
@@ -200,9 +203,9 @@ for i, ox_perturb in enumerate(growth_perturbation):
         array_element_unitcell.add(gds)
 
 #%% Narrow Range Sweep (High Resolution)
-n_swept = 9
-rc_center,  rc_base_span  = 0.0, 0.5
-cc_center, cc_base_span = 0.0, 0.6
+n_swept = 5
+rc_center,  rc_base_span  = 0.0, 2
+cc_center, cc_base_span = 0.0, 10
 
 # report swept parameter resolutions, total element count, and estimated simulation time
 right_resolution = rc_base_span*2 / n_swept
@@ -247,4 +250,5 @@ for i, ox_perturb in enumerate(growth_perturbation):
         array_element_unitcell.add(gds)
 
 #%% Outpute File
-lib.write_gds(f'./gds_files/bowtie_{implant_length}inImplant_2E_array_elements.gds')
+# lib.write_gds(f'./gds_files/bowtie_{implant_length}inImplant_2E_array_elements.gds')
+lib.write_gds(f'../gdspy_helper/gds_files/bowtie_{implant_length}inImplant_2E_array_elements.gds')

@@ -20,7 +20,7 @@ sweep_padding = 75 #padding between sweep sets
 angled_element_angle = 22.5 * np.pi /180 # radians
 implant_length = 3
 implant_width = 50
-implant_padding = 1
+implant_padding = 0
 
 growth_perturbation = np.arange(-1,1.5,step=0.5)
 #scale_factors = lateral_growth/(lateral_growth+growth_perturbation)
@@ -287,4 +287,5 @@ for i, ox_perturb in enumerate(growth_perturbation):
         array_element_unitcell.add(gds)
 
 #%% Outpute File
-lib.write_gds(f'./gds_files/bowtie_{implant_length}inImplant_3E_array_elements.gds')
+# lib.write_gds(f'./gds_files/bowtie_{implant_length}inImplant_3E_array_elements.gds')
+lib.write_gds(f'../gdspy_helper/gds_files/bowtie_{implant_length}inImplant_3E_array_elements.gds')

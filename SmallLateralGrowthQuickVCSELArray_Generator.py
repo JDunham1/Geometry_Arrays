@@ -9,7 +9,7 @@ mesa_layer = 3
 #%% Smole Quick VCSEL Parameters
 sml_lateral_growth = 5
 sml_contact_padding = 1
-contact_pad_hole_radius = 1
+contact_pad_hole_radius = 3/2
 contact_pad_radius = 15
 bridge_length = 7
 bridge_width = 3
@@ -22,7 +22,7 @@ leny = 4
 lenx = 14
 sml_die_size = np.array((sml_pitch*lenx,sml_gauge*leny))
 n = leny*lenx
-min_mesa_size = sml_lateral_growth*2 + 0.5
+min_mesa_size = sml_lateral_growth*2 + 0.5 - 2
 
 step_size_1 = 0.5 
 first_half_mesas = min_mesa_size + step_size_1*np.arange(n//2 + 1)
@@ -148,4 +148,5 @@ for gds in sml_vcsel_generator.to_gdspy(contact_layer=contact_layer,
                                         mesa_layer=mesa_layer):
     sml_lateral_growth_unitcell.add(gds)
 
-lib.write_gds('./gds_files/small_quick_vcsel_elements.gds')
+# lib.write_gds('./gds_files/small_quick_vcsel_elements.gds')
+lib.write_gds(f'../gdspy_helper/gds_files/small_quick_vcsel_elements.gds')
