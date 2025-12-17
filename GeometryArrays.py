@@ -588,6 +588,9 @@ class VCSELGenerator:
             patch = PathPatch(path, facecolor=facecolor, edgecolor=edgecolor, alpha=alpha, label=label, **kwargs)
             ax.add_patch(patch)
 
+        if shape is None or (hasattr(shape, "is_empty") and shape.is_empty):
+            return
+
         if isinstance(shape, ShapelyPolygon):
             plot_poly(shape,label)
         elif isinstance(shape, ShapelyMultiPolygon):
@@ -595,7 +598,7 @@ class VCSELGenerator:
             for poly in shape.geoms:
                 plot_poly(poly, label if first else None)
                 first = False
-                
+
         else:
             raise TypeError(f"Unsupported geometry type: {type(shape)}")
            
