@@ -9,10 +9,13 @@ mesa_layer = 3
 #%% Smole Quick VCSEL Parameters
 sml_lateral_growth = 5
 sml_contact_padding = 1
-contact_pad_hole_radius = 3/2
-contact_pad_radius = 15
+contact_pad_hole_radius = 5/2
+contact_pad_radius = 15.5
+pad_hole_distance = (contact_pad_radius+contact_pad_hole_radius)/2
+pad_hole_angle = np.pi/4 - np.pi/5.9
 bridge_length = 7
-bridge_width = 3
+bridge_width = 4
+bridge_overlap = 0.1 #for making sure the rectangle fully overlaps with the curvature of the contact pad
 sml_tab_width = 2
 sml_tab_length = 4
 
@@ -59,7 +62,7 @@ for coord, mesa in zip(np.column_stack([X.ravel(),Y.ravel()]),sml_mesas):
                     bridge_width/2,
                     bridge_width/2
                 ],
-            heights = [bridge_length/2, bridge_length/2]
+            heights = [bridge_length/2 + bridge_overlap, bridge_length/2 + bridge_overlap]
         )
     
     tab_geom = GA.Quadrilateral.from_sidelengths(
@@ -86,16 +89,23 @@ for coord, mesa in zip(np.column_stack([X.ravel(),Y.ravel()]),sml_mesas):
             r=contact_pad_hole_radius
         )
     
+    pad_hole_tab_geom = GA.Quadrilateral.from_dimensions(
+        width = [sml_tab_width/2,sml_tab_width/2],
+        height = [sml_tab_length/2, sml_tab_length/2]
+    )
+
     pad_hole_quartercircle_geom = GA.Circle.quarter_circle(
-            radius = sml_lateral_growth*2-2,
+            radius = pad_hole_distance,
             thickness = contact_pad_hole_radius,
-            offset = np.pi/8
+            offset = np.pi/4 - pad_hole_angle 
         )
     
     #assign centers
     cavity = GA.ArrayElement(sml_quick_vcsel,center=coord)
     bridge = GA.ArrayElement(bridge_geom,center=coord+(0,mesa/2+bridge_length/2))
     contact_pad = GA.ArrayElement(contact_pad_geom,center=coord+(0,mesa/2+contact_pad_radius+bridge_length-0.1))
+    pad_pull_tab = GA.ArrayElement(pad_hole_tab_geom,center=coord+(0,mesa/2+contact_pad_radius+bridge_length-0.1) + \
+                                                                  (pad_hole_distance*np.cos(3*np.pi/4)/2,pad_hole_distance*np.sin(3*np.pi/4)/2))
     
     holes = []
     # contact pad center hole
@@ -115,7 +125,7 @@ for coord, mesa in zip(np.column_stack([X.ravel(),Y.ravel()]),sml_mesas):
     #combine into a single small_lateral_growth VCSEL
     vcsel = GA.GeometryArray([cavity,bridge,contact_pad])
     vcsel_hole = GA.GeometryArray(holes)
-    pull_tab = GA.GeometryArray([tab])
+    pull_tab = GA.GeometryArray([tab,pad_pull_tab])
     
     #optional centering around coord
     # translation = vcsel.zero_array(new_center=coord)

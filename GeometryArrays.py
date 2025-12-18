@@ -100,7 +100,9 @@ def shapely_to_gdspy(shapely_geom, layer=0):
 class VCSELGenerator:
     def __init__(self, 
                  geometry_arrays: list,
+                 contact_arrays: list = None,
                  hole_arrays: list = None,
+                 contact_hole_arrays: list = None,
                  pull_tabs: list = None,
                  lateral_growth: float = None,
                  hole_lateral_growth: float = None,
@@ -120,7 +122,9 @@ class VCSELGenerator:
         
         #user controlled parameters
         self.geometry_arrays = geometry_arrays
+        self.contact_arrays = contact_arrays
         self.hole_arrays = hole_arrays
+        self.contact_hole_arrays = contact_hole_arrays
         self.pull_tabs = pull_tabs
         self.lateral_growth = lateral_growth
         self.hole_lateral_growth = hole_lateral_growth
@@ -229,19 +233,26 @@ class VCSELGenerator:
         for g_array in self.geometry_arrays:
             all_mesas.extend(g_array.to_shapely())
         
+        if self.contact_arrays:
+            for c_array in self.contact_arrays:
+                all_mesas.extend(c_array.to_shapely())
+        
         mesa_wo_holes = unary_union(all_mesas)
         self._exterior_mesa = mesa_wo_holes
 
-        if self.hole_arrays:
-            all_holes = []
+        all_holes = []
+        if self.hole_arrays:  
             for h_array in self.hole_arrays:
                 all_holes.extend(h_array.to_shapely())
-            holes_union = unary_union(all_holes)
-            self._holes = holes_union
 
-            self._mesa = mesa_wo_holes.difference(holes_union)
-        else:
-            self._mesa = mesa_wo_holes
+        if self.contact_hole_arrays:
+            for c_h_array in self.contact_hole_arrays:
+                all_holes.extend(c_h_array.to_shapely())
+            
+        holes_union = unary_union(all_holes)
+        self._holes = holes_union
+
+        self._mesa = self._exterior_mesa.difference(self._holes)
 
     def generate_aperture(self, lateral_growth = None):
         """
@@ -463,28 +474,15 @@ class VCSELGenerator:
         self._generate_contact_region(contact_padding,implant_padding)
         partitions = []
         for geometry_array in self.geometry_arrays:
-            for element in geometry_array.elements:
-                # Convert custom polygon to Shapely polygon using vertices
-                shapely_poly = ShapelyPolygon(element.get_transformed_vertices())
-                
-                # Buffer element polygon for per-element padding
-                padded_elem = shapely_poly.buffer(element_zone_padding)
-
-                # Remove implant blockers area from the padded element area if implant exists
-                if self._implants:
-                    implants_padded = self._implants.buffer(implant_padding)
-                    effective_elem = padded_elem.difference(implants_padded)
-                else:
-                    effective_elem = padded_elem
-
-                # Intersection with contact region
-                partition = self._contact_region.intersection(effective_elem)
-                
-                #filter out partition polygons that are below the minimum acceptable area
-                cleaned_partition = self._filter_small_polygons(partition, self.min_contact_area)
-                
-                if cleaned_partition is not None:
-                    partitions.append(cleaned_partition)
+            if self._implants:
+                include_ion = True
+            else:
+                include_ion = False
+            partitions.extend(self.select_contact_region(geometry_array,include_ion=include_ion))
+        
+        if self.contact_arrays:
+            for c_array in self.contact_arrays:
+                partitions.extend(self.select_contact_region(c_array,include_ion=False))
 
         self._contacts = unary_union(partitions)
         end_time = time.time()
@@ -754,6 +752,37 @@ class VCSELGenerator:
 
         doc.saveas(outfile)
     
+    def select_contact_region(self, geometry_array, include_ion=True):
+
+        element_zone_padding = self.element_zone_padding
+        implant_padding = self.implant_padding
+
+        partitions = []
+        for element in geometry_array.elements:
+                # Convert custom polygon to Shapely polygon using vertices
+                shapely_poly = ShapelyPolygon(element.get_transformed_vertices())
+                
+                # Buffer element polygon for per-element padding
+                padded_elem = shapely_poly.buffer(element_zone_padding)
+
+                # Remove implant blockers area from the padded element area if implant exists
+                if include_ion:
+                    implants_padded = self._implants.buffer(implant_padding)
+                    effective_elem = padded_elem.difference(implants_padded)
+                else:
+                    effective_elem = padded_elem
+
+                # Intersection with contact region
+                partition = self._contact_region.intersection(effective_elem)
+                
+                #filter out partition polygons that are below the minimum acceptable area
+                cleaned_partition = self._filter_small_polygons(partition, self.min_contact_area)
+                
+                if cleaned_partition is not None:
+                    partitions.append(cleaned_partition)
+                
+        return partitions
+
     @staticmethod 
     def _polygon_with_holes_to_path(polygon):
         """

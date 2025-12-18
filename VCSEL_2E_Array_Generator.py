@@ -9,8 +9,8 @@ mesa_layer = 3
 
 #%% Shared Parameters between arrays
 lateral_growth = 5 #um
-edge_pitch = 50 #um
-edge_gauge = 50 #um, eyeballed, feel free to change
+edge_pitch = 110 #um
+edge_gauge = 60 #um, eyeballed, feel free to change
 array_contact_padding = 1
 edge_align_padding = 10
 aperture_radius = 3*np.sqrt(2)/2
@@ -23,11 +23,15 @@ implant_width = 50
 implant_padding = 0
 
 # contact pad dimensions
-contact_pad_hole_radius = 3/2
-contact_pad_radius = 15
-hole_offset = 8
-bridge_length = 7
-bridge_width = 3
+contact_pad_hole_radius = 5/2
+contact_pad_radius = 15.5
+pad_hole_distance = (contact_pad_radius+contact_pad_hole_radius)/2
+pad_hole_angle = np.pi/4 - np.pi/5.9
+bridge_length = 4
+bridge_width = 7
+bridge_overlap = 0.1 #for making sure the rectangle fully overlaps with the curvature of the contact pad
+tab_width = 2
+tab_length = 4
 
 growth_perturbation = np.arange(-1,1.5,step=0.5)
 #scale_factors = lateral_growth/(lateral_growth+growth_perturbation)
@@ -67,7 +71,9 @@ def create_paramsweep_array_mesas(n_swept,
     
     
     vcsel_arrays = []
-    hole_arrays = []
+    contacts = []
+    contact_holes = []
+    tabs = []
     
     for i, (ox_perturb,s) in enumerate(zip(growth_perturbation,scale_factors)):
         print(f'Generating Sweep with Oxide Offset {ox_perturb}, scale_factor {s}')
@@ -115,25 +121,36 @@ def create_paramsweep_array_mesas(n_swept,
                     r=contact_pad_hole_radius)
     
                 pad_hole_quartercircle_geom = GA.Circle.quarter_circle(
-                    radius = hole_offset,
+                    radius = pad_hole_distance,
                     thickness = contact_pad_hole_radius,
-                    offset = np.pi/8)
+                    offset = np.pi/4 - pad_hole_angle)
+
+                pad_hole_tab_geom = GA.Quadrilateral.from_dimensions(
+                    width = [tab_width/2,tab_width/2],
+                    height = [tab_length/2, tab_length/2]
+                )
                 
                 bridge_geom = GA.Quadrilateral.from_sidelengths(
                     widths=[
                         bridge_width/2,
                         bridge_width/2
                     ],
-                    heights = [bridge_length/2, bridge_length/2]
+                    heights = [bridge_length/2+bridge_overlap, bridge_length/2+bridge_overlap]
                 )
 
-                left_pad_center = left_center + (-circumradii_penta[0],0)
-                right_pad_center = right_center + (circumradii_penta[0],0)
-                bridge_left = GA.ArrayElement(bridge_geom,center=left_pad_center + (contact_pad_radius*0.98+bridge_length,0))
-                bridge_right = GA.ArrayElement(bridge_geom,center=right_pad_center - (contact_pad_radius*0.98+bridge_length,0))
+                left_pad_center = left_center - (circumradii_penta[0]+contact_pad_radius,0)
+                right_pad_center = right_center + (circumradii_penta[0]+contact_pad_radius,0)
+                bridge_left = GA.ArrayElement(bridge_geom,center=left_pad_center + (contact_pad_radius,0))
+                bridge_right = GA.ArrayElement(bridge_geom,center=right_pad_center - (contact_pad_radius,0))
 
                 pad_left = GA.ArrayElement(contact_pad_geom,center=left_pad_center)
                 pad_right = GA.ArrayElement(contact_pad_geom,center=right_pad_center)
+
+                tab_left = GA.ArrayElement(pad_hole_tab_geom,center=left_pad_center + \
+                                           (pad_hole_distance*np.cos(3*np.pi/4)/2,pad_hole_distance*np.sin(3*np.pi/4)/2))
+                tab_right = GA.ArrayElement(pad_hole_tab_geom,center=right_pad_center + \
+                                           (pad_hole_distance*np.cos(np.pi/4)/2,pad_hole_distance*np.sin(np.pi/4)/2),
+                                           rotation_deg = -90)
 
                 holes = []
                 holes.append(GA.ArrayElement(contact_pad_hole_geom,
@@ -149,13 +166,21 @@ def create_paramsweep_array_mesas(n_swept,
                     holes.append(GA.ArrayElement(pad_hole_quartercircle_geom,
                                      center=right_pad_center,
                                      rotation_deg = rot))
-                hole_arrays.append(GA.GeometryArray(holes))
+                contact_holes.append(GA.GeometryArray(holes))
                 
                 #combine into geometryarray and add to generator list
-                vcsel_array_iy = GA.GeometryArray((left_mesa_iy,right_mesa_iy,pad_left,bridge_left,pad_right,bridge_right))
+                vcsel_array_iy = GA.GeometryArray((left_mesa_iy,right_mesa_iy))
                 vcsel_arrays.append(vcsel_array_iy)        
+
+                #combine contact pads into a geometryarray and add to generator contact list
+                pads = GA.GeometryArray((pad_left,bridge_left,pad_right,bridge_right))
+                contacts.append(pads)
+
+                #combine pull tabes into a geometryarray and add to generator tab list
+                pull_tabs = GA.GeometryArray([tab_left,tab_right])
+                tabs.append(pull_tabs)
     
-    return vcsel_arrays,hole_arrays
+    return vcsel_arrays, contacts, contact_holes, tabs
                 
 
 gdspy.current_library = gdspy.GdsLibrary()
@@ -181,27 +206,29 @@ print(f"""
     
       """)
 
-vcsel_arrays, hole_arrays = create_paramsweep_array_mesas(n_swept, growth_perturbation,
-                                                            [rc_center, rc_base_span],
-                                                            [pinch_center, pinch_base_span],
-                                                            lateral_growth,
-                                                            scale_factors)
+vcsel_arrays, contacts, hole_arrays, tabs = create_paramsweep_array_mesas(n_swept, growth_perturbation,
+                                                                          [rc_center, rc_base_span],
+                                                                          [pinch_center, pinch_base_span],
+                                                                          lateral_growth,
+                                                                          scale_factors)
 
 # Generate all difference Array combinations (separate ones at difference lateral growths for visual inspection)
 indices_of_ox = len(vcsel_arrays) // len(growth_perturbation)
 for i, ox_perturb in enumerate(growth_perturbation):
     print(f"\nGenerating Visualization of oxide offset {ox_perturb} array at {lateral_growth+ox_perturb} lateral growth:")
     visualization_generator = GA.VCSELGenerator(geometry_arrays = vcsel_arrays[i*indices_of_ox:(i+1)*indices_of_ox],
-                                                hole_arrays = hole_arrays[i*indices_of_ox:(i+1)*indices_of_ox],
+                                                contact_arrays = contacts[i*indices_of_ox:(i+1)*indices_of_ox],
+                                                contact_hole_arrays = hole_arrays[i*indices_of_ox:(i+1)*indices_of_ox],
+                                                pull_tabs = tabs[i*indices_of_ox:(i+1)*indices_of_ox],
                                                 lateral_growth = lateral_growth + ox_perturb,
                                                 contact_padding = array_contact_padding,
                                                 implant_width = implant_width,
                                                 implant_length = implant_length,
                                                 min_contact_area = 5)
     visualization_generator.generate_all(inv_fit=False)
-    visualization_generator.plot(show_implant=False,
-                                 show_implant_inv = True,
-                                 show_contact_region = False)
+    # visualization_generator.plot(show_implant=False,
+    #                              show_implant_inv = True,
+    #                              show_contact_region = True)
 
     for gds in visualization_generator.to_gdspy(include_aperture=True,
                                                 contact_layer=contact_layer,
@@ -227,28 +254,30 @@ print(f"""
 _, _, _, prev_ymax = visualization_generator.bounding_box
 mid_range_start = (0,prev_ymax+2*sweep_padding)
 
-vcsel_arrays, hole_arrays = create_paramsweep_array_mesas(n_swept, growth_perturbation, 
-                                                            [rc_center, rc_base_span],
-                                                            [pinch_center, pinch_base_span],
-                                                            lateral_growth,
-                                                            scale_factors,
-                                                            start = mid_range_start)
+vcsel_arrays, contacts, hole_arrays, tabs = create_paramsweep_array_mesas(n_swept, growth_perturbation, 
+                                                                            [rc_center, rc_base_span],
+                                                                            [pinch_center, pinch_base_span],
+                                                                            lateral_growth,
+                                                                            scale_factors,
+                                                                            start = mid_range_start)
 
 # Generate all difference Array combinations (separate ones at difference lateral growths for visual inspection)
 indices_of_ox = len(vcsel_arrays) // len(growth_perturbation)
 for i, ox_perturb in enumerate(growth_perturbation):
     print(f"\nGenerating Visualization of oxide offset {ox_perturb} array at {lateral_growth+ox_perturb} lateral growth:")
     visualization_generator = GA.VCSELGenerator(geometry_arrays = vcsel_arrays[i*indices_of_ox:(i+1)*indices_of_ox],
-                                                hole_arrays = hole_arrays[i*indices_of_ox:(i+1)*indices_of_ox],
+                                                contact_arrays = contacts[i*indices_of_ox:(i+1)*indices_of_ox],
+                                                contact_hole_arrays = hole_arrays[i*indices_of_ox:(i+1)*indices_of_ox],
+                                                pull_tabs = tabs[i*indices_of_ox:(i+1)*indices_of_ox],
                                                 lateral_growth = lateral_growth + ox_perturb,
                                                 contact_padding = array_contact_padding,
                                                 implant_width = implant_width,
                                                 implant_length = implant_length,
                                                 min_contact_area = 5)
     visualization_generator.generate_all(inv_fit=False)
-    visualization_generator.plot(show_implant=False,
-                                 show_implant_inv = True,
-                                 show_contact_region = False)
+    # visualization_generator.plot(show_implant=False,
+    #                              show_implant_inv = True,
+    #                              show_contact_region = False)
 
     for gds in visualization_generator.to_gdspy(include_aperture=True,
                                                 contact_layer=contact_layer,
@@ -274,19 +303,21 @@ print(f"""
 _, _, _, prev_ymax = visualization_generator.bounding_box
 low_range_start = (0,prev_ymax+2*sweep_padding)
 
-vcsel_arrays, hole_arrays = create_paramsweep_array_mesas(n_swept, growth_perturbation, 
-                                                            [rc_center, rc_base_span],
-                                                            [pinch_center, pinch_base_span],
-                                                            lateral_growth,
-                                                            scale_factors,
-                                                            start = low_range_start)
+vcsel_arrays, contacts, hole_arrays, tabs = create_paramsweep_array_mesas(n_swept, growth_perturbation, 
+                                                                            [rc_center, rc_base_span],
+                                                                            [pinch_center, pinch_base_span],
+                                                                            lateral_growth,
+                                                                            scale_factors,
+                                                                            start = low_range_start)
 
 # Generate all difference Array combinations (separate ones at difference lateral growths for visual inspection)
 indices_of_ox = len(vcsel_arrays) // len(growth_perturbation)
 for i, ox_perturb in enumerate(growth_perturbation):
     print(f"\nGenerating Visualization of oxide offset {ox_perturb} array at {lateral_growth+ox_perturb} lateral growth:")
     visualization_generator = GA.VCSELGenerator(geometry_arrays = vcsel_arrays[i*indices_of_ox:(i+1)*indices_of_ox],
+                                                contact_arrays = contacts[i*indices_of_ox:(i+1)*indices_of_ox],
                                                 hole_arrays = hole_arrays[i*indices_of_ox:(i+1)*indices_of_ox],
+                                                pull_tabs = tabs[i*indices_of_ox:(i+1)*indices_of_ox],
                                                 lateral_growth = lateral_growth + ox_perturb,
                                                 contact_padding = array_contact_padding,
                                                 implant_width = implant_width,
@@ -294,9 +325,9 @@ for i, ox_perturb in enumerate(growth_perturbation):
                                                 implant_padding = implant_padding,
                                                 min_contact_area = 5)
     visualization_generator.generate_all(inv_fit=False)
-    visualization_generator.plot(show_implant=False,
-                                 show_implant_inv = True,
-                                 show_contact_region = False)
+    # visualization_generator.plot(show_implant=False,
+    #                              show_implant_inv = True,
+    #                              show_contact_region = False)
 
     for gds in visualization_generator.to_gdspy(include_aperture=True,
                                                 contact_layer=contact_layer,
